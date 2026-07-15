@@ -1,0 +1,317 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Darwin Derby — Robinhood Chain</title>
+<style>
+:root{--paper:#f4efe4;--paper2:#ebe3cf;--ink:#211d15;--faint:#8a7f68;--red:#c93a2b;--green:#2e7d4f;--line:#cfc4a8}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:Georgia,'Times New Roman',serif;min-height:100vh;padding:16px 12px 40px;background-image:repeating-linear-gradient(0deg,transparent 0 27px,rgba(120,100,60,.06) 27px 28px)}
+.wrap{max-width:760px;margin:0 auto}
+.kicker{font-family:'Courier New',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+h1{font-size:34px;font-weight:400;margin:2px 0 4px}
+h1 em{color:var(--red)}
+.sub{font-size:14px;color:#4c4433;margin-bottom:14px}
+.card{background:#fbf8ef;border:1px solid var(--line);border-radius:3px;padding:14px 16px;margin-bottom:14px;box-shadow:2px 3px 0 rgba(60,50,25,.08)}
+.card.tilt{transform:rotate(-.3deg)}
+.rule{border:none;border-top:1px dashed var(--line);margin:10px 0}
+.mono{font-family:'Courier New',monospace}
+.badge{display:inline-block;font-family:'Courier New',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--ink);padding:2px 7px;border-radius:2px}
+.badge.red{border-color:var(--red);color:var(--red)}
+.badge.green{border-color:var(--green);color:var(--green)}
+button{font-family:'Courier New',monospace;font-size:13px;letter-spacing:.06em;text-transform:uppercase;background:var(--ink);color:var(--paper);border:none;padding:9px 16px;border-radius:2px;cursor:pointer}
+button:hover{background:#3a332a}
+button.red{background:var(--red)}
+button.ghost{background:transparent;color:var(--ink);border:1px dashed var(--ink)}
+button:disabled{opacity:.45;cursor:not-allowed}
+input{font-family:'Courier New',monospace;font-size:13px;background:#fff;border:1px solid var(--line);border-radius:2px;padding:9px 10px;color:var(--ink);width:100%}
+input:focus{outline:none;border-color:var(--ink)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.grow{flex:1;min-width:140px}
+.clock{font-family:'Courier New',monospace;font-size:52px;line-height:1;color:var(--red)}
+.small{font-size:12px;color:var(--faint)}
+.err{color:var(--red);font-family:'Courier New',monospace;font-size:12px;margin-top:6px;min-height:14px}
+.entries{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:5px;margin-top:10px}
+.entry{font-family:'Courier New',monospace;font-size:11px;border:1px dashed var(--line);padding:4px 7px;border-radius:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.entry.human{border-color:var(--red);color:var(--red)}
+#track{position:relative;background:var(--paper2);border:1px solid var(--line);border-radius:3px;padding:8px 8px;overflow:hidden}
+#track:after{content:'';position:absolute;top:0;bottom:0;right:54px;border-right:3px double var(--red);opacity:.6}
+.lane{position:relative;height:17px;border-bottom:1px dashed rgba(120,100,60,.25)}
+.lane:last-child{border-bottom:none}
+.car{position:absolute;left:0;top:1px;display:flex;align-items:center;gap:5px;will-change:transform}
+.car .box{width:26px;height:13px;background:var(--ink);border-radius:3px 6px 2px 2px;position:relative;flex:none}
+.car .box:after{content:'';position:absolute;bottom:-3px;left:3px;width:5px;height:5px;background:var(--ink);border-radius:50%;box-shadow:14px 0 0 var(--ink)}
+.car.human .box{background:var(--red)}
+.car.human .box:after{background:var(--red);box-shadow:14px 0 0 var(--red)}
+.car .cname{font-family:'Courier New',monospace;font-size:10px;color:var(--faint);white-space:nowrap}
+.winner-name{font-size:30px;margin:6px 0}
+.hist{font-family:'Courier New',monospace;font-size:11.5px}
+.hist div{padding:5px 0;border-bottom:1px dashed var(--line);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.copybtn{background:transparent;border:1px dashed var(--line);color:var(--faint);padding:2px 8px;font-size:10px}
+.view{display:none}
+.statgrid{display:flex;gap:18px;flex-wrap:wrap;font-family:'Courier New',monospace;font-size:12px}
+.statgrid b{display:block;font-size:15px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">pit notes &middot; robinhood chain edition</div>
+  <h1>Darwin <em>Derby</em></h1>
+  <div class="sub">Twenty cars. One random draw. Human winners get <b class="mono" id="prizeLbl">0.0005 ETH</b> from the treasury.</div>
+
+  <div class="card">
+    <div class="statgrid">
+      <span>treasury <b class="mono" id="treasury">—</b></span>
+      <span>prize / human win <b class="mono" id="prizeStat">—</b></span>
+      <span>heats run <b class="mono" id="heatCount">0</b></span>
+    </div>
+    <hr class="rule">
+    <div class="row small mono">
+      <span id="treasuryAddr">—</span>
+      <button class="copybtn" id="copyAddr">copy</button>
+      <span style="margin-left:auto" id="youAre"></span>
+    </div>
+  </div>
+
+  <div id="vLoading" class="view card"><span class="mono small">surveying the course…</span></div>
+
+  <div id="vClosed" class="view card tilt">
+    <div class="kicker">races paused</div>
+    <p style="margin:8px 0 12px">No lobby timer running. <span id="closedNote">Waiting on the pit boss to open a heat.</span></p>
+    <div id="ownerClosed" style="display:none">
+      <div class="row">
+        <button class="red" id="btnOpen">Open 45s lobby</button>
+        <span class="small">bots fill empty slots at zero</span>
+      </div>
+      <hr class="rule">
+      <div class="row">
+        <input id="prizeInput" class="grow" style="max-width:140px" placeholder="prize ETH">
+        <button class="ghost" id="btnPrize">set prize</button>
+        <span class="small">max 0.01 ETH</span>
+      </div>
+      <div class="err" id="closedErr"></div>
+    </div>
+  </div>
+
+  <div id="vLobby" class="view card">
+    <div class="kicker">entry window open</div>
+    <div class="row" style="align-items:baseline;margin:6px 0 4px">
+      <span class="clock" id="clock">45</span>
+      <span class="mono small"><span id="joinCount">0</span> / 20 joined &middot; one entry per device</span>
+    </div>
+    <div id="joinForm">
+      <div class="row" style="margin-top:8px">
+        <input id="inUser" class="grow" maxlength="18" placeholder="username">
+        <input id="inWallet" class="grow" style="min-width:220px" placeholder="0x wallet (robinhood chain)">
+        <button class="red" id="btnJoin">Join</button>
+      </div>
+      <div class="err" id="joinErr"></div>
+    </div>
+    <div id="joinedNote" style="display:none" class="mono small">you're in this heat. good luck.</div>
+    <div class="entries" id="entryList"></div>
+  </div>
+
+  <div id="vRace" class="view card">
+    <div class="kicker">heat running &middot; 1&times;</div>
+    <div style="height:8px"></div>
+    <div id="track"></div>
+  </div>
+
+  <div id="vResult" class="view card tilt">
+    <div class="kicker">course survey &middot; official result</div>
+    <div class="winner-name" id="winName">—</div>
+    <div class="mono small" id="winWallet"></div>
+    <div style="margin:8px 0"><span class="badge" id="winBadge">—</span> <span class="badge" id="payBadge" style="display:none">—</span></div>
+    <hr class="rule">
+    <div id="payoutZone"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="ghost" id="btnBack">back to pit</button>
+    </div>
+    <div class="err" id="resErr"></div>
+  </div>
+
+  <div class="card">
+    <div class="kicker">payout proof &middot; past heats</div>
+    <div class="hist" id="histList" style="margin-top:8px"><span class="small">no heats yet — first draw will appear here.</span></div>
+  </div>
+
+  <div class="small mono" style="text-align:center">timer ends &rarr; bots fill &rarr; race &rarr; equal-odds draw &rarr; auto lobby</div>
+</div>
+
+<script>
+(function(){
+var ST=null,tOff=0,view='loading',dev=null,settling=false,joinedHeat=null,dismissed={},pollT=null,tickT=null,isOwner=false;
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&','<':'<','>':'>','"':'"',"'":'&#39;'}[c];});}
+function shortA(a){return a?a.slice(0,6)+'…'+a.slice(-4):'—';}
+function ethFmt(wei){try{var n=Number(BigInt(wei))/1e18;return n.toFixed(n<0.01?6:4)+' ETH';}catch(e){return '—';}}
+try{dev=localStorage.getItem('dd_dev');if(!dev){dev='d'+Math.random().toString(36).slice(2)+Date.now().toString(36);localStorage.setItem('dd_dev',dev);}}catch(e){dev='d'+Math.random().toString(36).slice(2)+Date.now().toString(36);}
+function show(v){view=v;var m={loading:'vLoading',closed:'vClosed',lobby:'vLobby',race:'vRace',result:'vResult'};for(var k in m){$(m[k]).style.display=(k===v)?'block':'none';}}
+function nowS(){return Date.now()+tOff;}
+
+async function refresh(){
+  if(view==='race'||settling)return;
+  try{
+    var s=await bankr.invokeScript('getState');
+    ST=s;tOff=s.now-Date.now();
+    isOwner=((bankr.ctx.walletAddress||'').toLowerCase()===s.ownerAddress);
+    renderCommon();route();
+  }catch(e){/* keep last state */}
+}
+
+function renderCommon(){
+  $('treasury').textContent=ethFmt(ST.treasuryWei);
+  $('prizeStat').textContent=ST.config.prizeEth+' ETH';
+  $('prizeLbl').textContent=ST.config.prizeEth+' ETH';
+  $('heatCount').textContent=ST.history.length;
+  $('treasuryAddr').textContent='treasury: '+shortA(ST.ownerAddress);
+  $('youAre').textContent=isOwner?'signed in as pit boss':'';
+  var hl=$('histList');
+  if(!ST.history.length){hl.innerHTML='<span class="small">no heats yet — first draw will appear here.</span>';}
+  else{
+    hl.innerHTML=ST.history.map(function(h){
+      var w=h.winner||{};
+      var tag=w.isBot?'<span class="badge">bot</span>':'<span class="badge red">human</span>';
+      var pay=w.isBot?'':(h.paid?' <span class="badge green">paid'+(h.txHash?' &middot; '+esc(h.txHash.slice(0,10))+'…':'')+'</span>':' <span class="badge">unpaid</span>');
+      return '<div><span>'+new Date(h.settledAt).toLocaleString()+'</span><span>'+esc(w.username||'—')+'</span>'+tag+pay+'<span style="margin-left:auto">'+(w.wallet?shortA(w.wallet):'')+'</span></div>';
+    }).join('');
+  }
+}
+
+function route(){
+  if(view==='race'||settling)return;
+  var h=ST.heat;
+  if(!h||(h.status==='done'&&dismissed[h.id])){show('closed');renderClosed();stopTick();return;}
+  if(h.status==='lobby'){
+    if(nowS()>=h.endsAt){doSettle();return;}
+    show('lobby');renderLobby();startTick();return;
+  }
+  if(h.status==='done'){show('result');renderResult(h);stopTick();}
+}
+
+function renderClosed(){
+  $('ownerClosed').style.display=isOwner?'block':'none';
+  $('closedNote').textContent=isOwner?'Open a heat when you\'re ready.':'Waiting on the pit boss to open a heat.';
+}
+
+function renderLobby(){
+  var h=ST.heat;
+  $('joinCount').textContent=h.entries.length;
+  var mine=(joinedHeat===h.id);
+  $('joinForm').style.display=(mine||h.entries.length>=20)?'none':'block';
+  $('joinedNote').style.display=mine?'block':'none';
+  $('entryList').innerHTML=h.entries.map(function(e,i){
+    return '<div class="entry'+(e.isBot?'':' human')+'">'+(i+1)+'. '+esc(e.username)+(e.wallet?' &middot; '+shortA(e.wallet):'')+'</div>';
+  }).join('')||'<span class="small mono">waiting for entries…</span>';
+}
+
+function startTick(){if(tickT)return;tickT=setInterval(function(){
+  if(view!=='lobby'||!ST||!ST.heat||ST.heat.status!=='lobby'){return;}
+  var left=Math.max(0,Math.ceil((ST.heat.endsAt-nowS())/1000));
+  $('clock').textContent=left;
+  if(left<=0){doSettle();}
+},250);}
+function stopTick(){if(tickT){clearInterval(tickT);tickT=null;}}
+
+async function doSettle(){
+  if(settling)return;settling=true;stopTick();
+  try{
+    var r=await bankr.invokeScript('settleHeat',{});
+    if(r&&r.ok&&r.heat&&r.heat.winner){ST.heat=r.heat;runRace(r.heat);}
+    else{settling=false;route();}
+  }catch(e){settling=false;}
+}
+
+function runRace(h){
+  show('race');
+  var track=$('track');track.innerHTML='';
+  var W=Math.max(120,track.clientWidth-150);
+  var cars=[];
+  h.entries.forEach(function(e,i){
+    var lane=document.createElement('div');lane.className='lane';
+    var car=document.createElement('div');car.className='car'+(e.isBot?'':' human');
+    car.innerHTML='<span class="box"></span><span class="cname">'+esc(e.username)+'</span>';
+    lane.appendChild(car);track.appendChild(lane);
+    var finish=(i===h.winner.index)?6000:6500+Math.random()*2800;
+    cars.push({el:car,finish:finish,ph:Math.random()*6.28});
+  });
+  var t0=performance.now();
+  function frame(t){
+    var el=t-t0;
+    cars.forEach(function(c){
+      var p=Math.min(1,el/c.finish);
+      if(p<1){p=Math.max(0,p-0.07*Math.sin(el/380+c.ph)*(1-p));}
+      c.el.style.transform='translateX('+(p*W)+'px)';
+    });
+    if(el<6400){requestAnimationFrame(frame);}
+    else{setTimeout(function(){settling=false;show('result');renderResult(ST.heat);},900);}
+  }
+  requestAnimationFrame(frame);
+}
+
+function renderResult(h){
+  var w=h.winner||{};
+  $('winName').textContent=w.username||'—';
+  $('winWallet').textContent=w.wallet?w.wallet:'bot car — no wallet';
+  $('winBadge').textContent=w.isBot?'bot wins — treasury keeps the prize':'human wins';
+  $('winBadge').className='badge '+(w.isBot?'':'red');
+  var pb=$('payBadge');
+  if(!w.isBot&&h.paid){pb.style.display='inline-block';pb.className='badge green';pb.textContent='paid'+(h.txHash?' · '+h.txHash.slice(0,10)+'…':'');}
+  else{pb.style.display='none';}
+  var z=$('payoutZone');z.innerHTML='';
+  if(!w.isBot&&!h.paid&&isOwner){
+    z.innerHTML='<div class="row"><button class="red" id="btnPay">Send '+ST.config.prizeEth+' ETH prize</button><span class="small">tx goes to chat for your confirmation</span></div>'+
+      '<div class="row" style="margin-top:8px"><input id="inHash" class="grow" placeholder="tx hash (optional)"><button class="ghost" id="btnMark">mark paid</button></div>';
+    $('btnPay').onclick=async function(){
+      $('resErr').textContent='';this.disabled=true;
+      try{
+        var r=await bankr.invokeScript('preparePayout',{heatId:h.id});
+        if(!r.ok){$('resErr').textContent=r.error;this.disabled=false;return;}
+        await bankr.confirmTransaction(r.txBlob);
+        $('resErr').textContent='tx sent to chat — confirm it there, then mark paid with the hash.';
+      }catch(e){$('resErr').textContent=String(e&&e.message||e);this.disabled=false;}
+    };
+    $('btnMark').onclick=async function(){
+      try{
+        var r=await bankr.invokeScript('recordPayout',{heatId:h.id,txHash:$('inHash').value});
+        if(!r.ok){$('resErr').textContent=r.error;return;}
+        await refresh();renderResult(ST.heat);
+      }catch(e){$('resErr').textContent=String(e&&e.message||e);}
+    };
+  }else if(!w.isBot&&!h.paid){
+    z.innerHTML='<span class="small mono">prize payout pending — the pit boss sends it from the treasury.</span>';
+  }
+}
+
+$('btnBack').onclick=function(){if(ST&&ST.heat){dismissed[ST.heat.id]=1;}route();};
+$('btnOpen').onclick=async function(){
+  $('closedErr').textContent='';this.disabled=true;
+  try{var r=await bankr.invokeScript('startHeat',{});if(!r.ok){$('closedErr').textContent=r.error;}else{ST.heat=r.heat;joinedHeat=null;route();}}
+  catch(e){$('closedErr').textContent=String(e&&e.message||e);}
+  this.disabled=false;
+};
+$('btnPrize').onclick=async function(){
+  $('closedErr').textContent='';
+  try{var r=await bankr.invokeScript('setPrize',{prizeEth:$('prizeInput').value});$('closedErr').textContent=r.ok?('prize set: '+r.prizeEth+' ETH'):r.error;if(r.ok)refresh();}
+  catch(e){$('closedErr').textContent=String(e&&e.message||e);}
+};
+$('btnJoin').onclick=async function(){
+  $('joinErr').textContent='';this.disabled=true;
+  try{
+    var r=await bankr.invokeScript('joinHeat',{username:$('inUser').value,wallet:$('inWallet').value,deviceId:dev});
+    if(!r.ok){$('joinErr').textContent=r.error;}
+    else{ST.heat=r.heat;joinedHeat=r.heat.id;renderLobby();}
+  }catch(e){$('joinErr').textContent=String(e&&e.message||e);}
+  this.disabled=false;
+};
+$('copyAddr').onclick=function(){if(ST)bankr.copy(ST.ownerAddress);};
+
+bankr.on('ready',function(){
+  refresh();
+  pollT=setInterval(refresh,5000);
+});
+})();
+</script>
+</body>
+</html>
