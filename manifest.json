@@ -1,0 +1,9 @@
+{
+  "slug": "darwin-derby",
+  "title": "Darwin Derby — Robinhood Chain",
+  "description": "Remake of darwin-derby.vercel.app on Robinhood Chain. 20-slot wallet race: 45s lobby, username + wallet entry, one entry per device, bots fill empty slots, one wallet drawn at random with equal odds. Human winners get a fixed ETH prize paid from the owner's Robinhood Chain treasury via a chat-confirmed transaction.",
+  "tags": ["game", "robinhood", "raffle", "race"],
+  "permissions": ["read:wallet", "read:chain", "read:appdata", "write:appdata", "prepare:transaction"],
+  "scripts": ["getState", "startHeat", "joinHeat", "settleHeat", "preparePayout", "recordPayout", "setPrize"],
+  "frontendIdentity": "owner"
+}
